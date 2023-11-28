@@ -2,6 +2,18 @@
 edition = "2021"
 name = "either-slot"
 version = "0.1.0"
+authors = ["Js2xxx <akucxy@163.com>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+description = """
+An atomic slot that both ends can access it at most once. If one end
+successfully places a data into it, the other end fails to place its data and
+obtains the former's data instead."""
+
+repository = "https://github.com/js2xxx/either-slot"
+keywords = ["atomic", "slot", "either", "channel", "oneshot"]
+categories = ["concurrency", "data-structures"]
 
 [target.'cfg(loom)'.dev-dependencies]
 loom = "0.7"
