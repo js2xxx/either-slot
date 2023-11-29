@@ -4,14 +4,14 @@ pub use core::{
     hint,
     mem::{self, ManuallyDrop},
     ptr::NonNull,
-    sync::atomic::{AtomicU8, Ordering::*},
+    sync::atomic::{self, AtomicBool, AtomicU8, AtomicUsize, Ordering::*},
 };
 
 #[derive(Debug)]
-pub(crate) struct UnsafeCell<T>(core::cell::UnsafeCell<T>);
+pub(crate) struct UnsafeCell<T: ?Sized>(core::cell::UnsafeCell<T>);
 
 impl<T> UnsafeCell<T> {
-    pub(crate) fn new(data: T) -> UnsafeCell<T> {
+    pub(crate) const fn new(data: T) -> UnsafeCell<T> {
         UnsafeCell(core::cell::UnsafeCell::new(data))
     }
 

@@ -15,5 +15,5 @@ repository = "https://github.com/js2xxx/either-slot"
 keywords = ["atomic", "slot", "either", "channel", "oneshot"]
 categories = ["concurrency", "data-structures"]
 
-[target.'cfg(loom)'.dev-dependencies]
+[target.'cfg(loom)'.dependencies]
 loom = "0.7"

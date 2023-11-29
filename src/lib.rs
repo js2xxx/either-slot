@@ -1,13 +1,17 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
 #![feature(allocator_api)]
-#![feature(alloc_layout_extra)]
+#![feature(trusted_len)]
+#![cfg_attr(loom, feature(alloc_layout_extra))]
 #![cfg_attr(test, feature(assert_matches))]
 
-#[cfg_attr(not(all(test, loom)), path = "include_core.rs")]
-#[cfg_attr(all(test, loom), path = "include_loom.rs")]
+#[cfg_attr(not(loom), path = "include_core.rs")]
+#[cfg_attr(loom, path = "include_loom.rs")]
 mod include;
 
+pub mod array;
+
+pub use self::array::{arrayed, vecked};
 use self::include::*;
 
 extern crate alloc;

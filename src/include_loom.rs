@@ -9,7 +9,7 @@ pub use loom::{
     alloc::{alloc, dealloc, Layout},
     cell::UnsafeCell,
     hint,
-    sync::atomic::{AtomicU8, Ordering::*},
+    sync::atomic::{self, AtomicBool, AtomicU8, AtomicUsize, Ordering::*},
 };
 
 pub struct Global;
