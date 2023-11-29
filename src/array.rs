@@ -47,7 +47,7 @@ impl<T> Element<T> {
     /// - This element slot must not hold a value when the function is called.
     /// - The caller must append a [`Release`] fence if atomic ordering is
     ///   desired.
-    unsafe fn place(&self, data: T) {
+    pub(crate) unsafe fn place(&self, data: T) {
         unsafe { self.storage.with_mut(|ptr| (*ptr).write(data)) };
         self.placed.store(true, Relaxed);
     }
@@ -58,7 +58,7 @@ impl<T> Element<T> {
     ///   value.
     /// - The caller must prepend an [`Acquire`] fence if atomic ordering is
     ///   desired.
-    unsafe fn take(&self) -> Option<T> {
+    pub(crate) unsafe fn take(&self) -> Option<T> {
         self.placed
             .load(Relaxed)
             .then(|| unsafe { self.storage.with_mut(|ptr| (*ptr).assume_init_read()) })
@@ -347,7 +347,7 @@ pub fn from_place<T, P: Place<T>>(place: P) -> InitIter<T, P> {
 
 /// Construct an iterator of senders to a slot, whose values will be placed on a
 /// [`Vec`].
-pub fn vecked<T>(count: usize) -> InitIter<T, Vec<Element<T>>> {
+pub fn vec<T>(count: usize) -> InitIter<T, Vec<Element<T>>> {
     from_place(Element::vec(count))
 }
 
@@ -356,7 +356,25 @@ pub fn vecked<T>(count: usize) -> InitIter<T, Vec<Element<T>>> {
 ///
 /// This function is specialized to returning an array of senders instead of an
 /// iterator in order to keep resulting length constant.
-pub fn arrayed<T, const N: usize>() -> [Sender<T, [Element<T>; N]>; N] {
+///
+/// # Examples
+///
+/// ```rust
+/// let [s1, s2, s3] = either_slot::array();
+/// s1.send(1).unwrap();
+/// s2.send(2).unwrap();
+/// let iter = s3.send(3).unwrap_err();
+/// assert_eq!(iter.collect::<Vec<_>>(), [1, 2, 3]);
+/// ```
+///
+/// ```rust
+/// let [s1, s2, s3] = either_slot::array();
+/// drop(s1);
+/// s3.send(3).unwrap();
+/// let iter = s2.send(2).unwrap_err();
+/// assert_eq!(iter.collect::<Vec<_>>(), [2, 3]);
+/// ```
+pub fn array<T, const N: usize>() -> [Sender<T, [Element<T>; N]>; N] {
     let inner = Inner::new(Element::array());
     // SAFETY: `inner` is immutable; index is in (0..N).
     array::from_fn(move |index| unsafe { Sender::new(inner, index) })
@@ -371,30 +389,12 @@ mod tests {
     #[cfg(loom)]
     use loom::thread;
 
-    #[cfg(not(loom))]
-    use super::arrayed;
     use crate::array::{from_place, Element};
-
-    #[cfg(not(loom))]
-    #[test]
-    fn basic() {
-        let [s1, s2, s3] = arrayed();
-        s1.send(1).unwrap();
-        s2.send(2).unwrap();
-        let iter = s3.send(3).unwrap_err();
-        assert_eq!(iter.collect::<Vec<_>>(), [1, 2, 3]);
-
-        let [s1, s2, s3] = arrayed();
-        drop(s1);
-        s3.send(3).unwrap();
-        let iter = s2.send(2).unwrap_err();
-        assert_eq!(iter.collect::<Vec<_>>(), [2, 3]);
-    }
 
     #[test]
     fn send() {
         fn inner() {
-            let j = from_place(Element::array::<2>())
+            let j = from_place(Element::array::<3>())
                 .enumerate()
                 .map(|(i, s)| thread::spawn(move || s.send(i)))
                 .collect::<Vec<_>>();
@@ -405,7 +405,7 @@ mod tests {
                 .fold(Ok(()), Result::and)
                 .unwrap_err();
 
-            assert_eq!(iter.collect::<Vec<_>>(), [0, 1]);
+            assert_eq!(iter.collect::<Vec<_>>(), [0, 1, 2]);
         }
 
         #[cfg(not(loom))]

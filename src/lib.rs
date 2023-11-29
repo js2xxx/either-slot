@@ -10,9 +10,13 @@
 mod include;
 
 pub mod array;
+pub mod tuple;
 
-pub use self::array::{arrayed, vecked};
 use self::include::*;
+pub use self::{
+    array::{array, vec},
+    tuple::tuple,
+};
 
 extern crate alloc;
 
@@ -196,7 +200,7 @@ impl<A, B> Drop for BSender<A, B> {
     }
 }
 
-pub fn either_slot<A, B>() -> (ASender<A, B>, BSender<A, B>) {
+pub fn either<A, B>() -> (ASender<A, B>, BSender<A, B>) {
     let inner = Inner::new();
     (ASender(inner), BSender(inner))
 }
@@ -210,26 +214,26 @@ mod tests {
     #[cfg(loom)]
     use loom::thread;
 
-    use crate::{either_slot, SendError};
+    use crate::{either, SendError};
 
     #[cfg(not(loom))]
     #[test]
     fn basic() {
-        let (a, b) = either_slot();
+        let (a, b) = either();
         a.send(1).unwrap();
         assert_eq!(b.send('x'), Err(crate::SendError::Received('x', 1)));
 
-        let (a, b) = either_slot::<_, ()>();
+        let (a, b) = either::<_, ()>();
         drop(b);
         assert_eq!(a.send(1), Err(SendError::Disconnected(1)));
 
-        let _ = either_slot::<i32, u8>();
+        let _ = either::<i32, u8>();
     }
 
     #[test]
     fn send() {
         fn inner() {
-            let (a, b) = either_slot();
+            let (a, b) = either();
             let t = thread::spawn(move || a.send(1));
             let r1 = b.send('x');
             let r2 = t.join().unwrap();
@@ -248,7 +252,7 @@ mod tests {
     #[test]
     fn drop_either() {
         fn inner() {
-            let (a, b) = either_slot::<i32, _>();
+            let (a, b) = either::<i32, _>();
             let t = thread::spawn(move || drop(a));
             assert_matches!(b.send(1), Err(SendError::Disconnected(1)) | Ok(()));
             t.join().unwrap();
@@ -262,7 +266,7 @@ mod tests {
     #[test]
     fn drop_both() {
         fn inner() {
-            let (a, b) = either_slot::<i32, u8>();
+            let (a, b) = either::<i32, u8>();
             let t = thread::spawn(move || drop(a));
             drop(b);
             t.join().unwrap();
