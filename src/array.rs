@@ -94,6 +94,7 @@ where
             count <= MAX_COUNT,
             "the length of the slot must not exceed `isize::MAX`"
         );
+        assert!(count > 0, "the slot must not be empty");
 
         let memory = match Global.allocate(Self::LAYOUT) {
             Ok(memory) => memory.cast::<Self>(),
@@ -115,20 +116,19 @@ where
     /// 1. `this` must own a valid `Inner` uniquely (a.k.a. no other references
     ///    to the structure), and use an [`Acquire`] fence if atomic ordering is
     ///    desired.
-    /// 2. `start` must be less than the length of `place` in `this`.
-    /// 3. The caller must not use `this` again since it is consumed and dropped
+    /// 2. The caller must not use `this` again since it is consumed and dropped
     ///    in this function.
     unsafe fn drop_in_place(this: NonNull<Self>, start: usize) {
         // SAFETY: See contract 1.
         let inner = unsafe { this.as_ref() };
-        // SAFETY: See contract 2.
-        for elem in inner.place.as_ref().get_unchecked(start..) {
+
+        for elem in inner.place.as_ref().get(start..).into_iter().flatten() {
             // SAFETY: See contract 1.
             unsafe { drop(elem.take()) }
         }
-        // SAFETY: See contract 3.
+        // SAFETY: See contract 2.
         unsafe { ptr::drop_in_place(this.as_ptr()) };
-        // SAFETY: See contract 3.
+        // SAFETY: See contract 2.
         unsafe { Global.deallocate(this.cast(), Inner::<T, P>::LAYOUT) };
     }
 }
