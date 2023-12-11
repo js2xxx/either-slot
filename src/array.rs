@@ -257,15 +257,11 @@ impl<T, P: Place<T>> Iterator for SenderIter<T, P> {
         // SAFETY: See contract 1 in `Sender::new`.
         let inner = unsafe { self.inner.as_ref() };
         let len = inner.place.as_ref().len();
-        (len, Some(len))
+        (0, Some(len))
     }
 }
 
-impl<T, P: Place<T>> ExactSizeIterator for SenderIter<T, P> {}
-
 impl<T, P: Place<T>> FusedIterator for SenderIter<T, P> {}
-
-unsafe impl<T, P: Place<T>> TrustedLen for SenderIter<T, P> {}
 
 impl<T, P: Place<T>> Drop for SenderIter<T, P> {
     fn drop(&mut self) {
