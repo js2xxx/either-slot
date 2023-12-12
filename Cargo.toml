@@ -4,7 +4,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 name = "either-slot"
 readme = "README.md"
-version = "1.1.0"
+version = "1.2.0"
 
 description = """
 An atomic slot whose senders can either place their value into the slot, or
