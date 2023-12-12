@@ -2,8 +2,7 @@ mod utils;
 
 use tuple_list::{Tuple, TupleList};
 
-pub use self::utils::{Concat, Construct, InElement};
-use self::utils::{Count, Index};
+pub use self::utils::{Concat, Construct, Count, InElement, Index};
 use crate::{array::Element, include::*};
 
 #[derive(Debug)]
@@ -52,12 +51,25 @@ impl<T: InElement> Inner<T> {
     }
 }
 
-type Whole<Head, Current, Tail> = <<Head as Concat<(Current,)>>::Output as Concat<Tail>>::Output;
-type List<Head, Current, Tail> = <Whole<Head, Current, Tail> as Tuple>::TupleList;
+/// The whole tuple of concatenated head, current and tail tuples.
+pub type Whole<Head, Current, Tail> =
+    <<Head as Concat<(Current,)>>::Output as Concat<Tail>>::Output;
+
+/// The whole tuple list of concatenated head, current and tail tuples.
+pub type List<Head, Current, Tail> = <Whole<Head, Current, Tail> as Tuple>::TupleList;
+
 type Ptr<Head, Current, Tail> = NonNull<Inner<List<Head, Current, Tail>>>;
-type Place<Head, Current, Tail> = <List<Head, Current, Tail> as InElement>::Place;
-type TakeList<Head, Current, Tail> = <List<Head, Current, Tail> as InElement>::Take;
-type Take<Head, Current, Tail> = <TakeList<Head, Current, Tail> as TupleList>::Tuple;
+
+/// The storage place of the tuple slot senders.
+pub type Place<Head, Current, Tail> = <List<Head, Current, Tail> as InElement>::Place;
+
+/// The corresponding tuple list type of the error type of the returned value of
+/// [`send`](Sender::send).
+pub type TakeList<Head, Current, Tail> = <List<Head, Current, Tail> as InElement>::Take;
+
+/// The error type of the returned value of [`send`](Sender::send); a tuple of
+/// [`Option`]s of stored values.
+pub type Take<Head, Current, Tail> = <TakeList<Head, Current, Tail> as TupleList>::Tuple;
 
 /// The placer of an tuple slot.
 ///
@@ -89,7 +101,8 @@ where
 {
 }
 
-type CurIndex<Head> = <<Head as Tuple>::TupleList as Count>::Count;
+/// The typenum count of a tuple.
+pub type CountOf<T> = <<T as Tuple>::TupleList as Count>::Count;
 
 impl<Head, Current, Tail> Sender<Head, Current, Tail>
 where
@@ -111,12 +124,12 @@ where
     pub fn send(self, value: Current) -> Result<(), Take<Head, Current, Tail>>
     where
         <Head as Tuple>::TupleList: Count,
-        Place<Head, Current, Tail>: Index<CurIndex<Head>, Output = Element<Current>>,
+        Place<Head, Current, Tail>: Index<CountOf<Head>, Output = Element<Current>>,
     {
         let pointer = self.0;
         // SAFETY: See contract 1 in `Self::new`.
         let inner = unsafe { pointer.as_ref() };
-        let elem: &Element<Current> = Index::<CurIndex<Head>>::index(&inner.place);
+        let elem: &Element<Current> = Index::<CountOf<Head>>::index(&inner.place);
 
         // SAFETY: Each sender has its ownership of one `Element` storage in its
         // `inner`, and thus the placing is safe. Besides, the appending `Release`

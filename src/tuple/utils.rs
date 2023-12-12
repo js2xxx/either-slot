@@ -112,13 +112,10 @@ impl_concat!(A, B, C, D, E, F, G, H, I, J, K, L,);
 pub struct UTerm;
 pub struct UInt<U>(PhantomData<U>);
 
-pub trait Unsigned {}
-
-impl Unsigned for UTerm {}
-impl<U: Unsigned> Unsigned for UInt<U> {}
-
+/// A typenum-countable tuple list.
 pub trait Count: TupleList {
-    type Count: Unsigned;
+    /// The output typenum count.
+    type Count;
 }
 
 impl Count for () {
@@ -128,15 +125,19 @@ impl Count for () {
 impl<Head, Tail> Count for (Head, Tail)
 where
     Tail: Count,
-    <Tail as Count>::Count: Unsigned,
     (Head, Tail): TupleList,
 {
     type Count = UInt<<Tail as Count>::Count>;
 }
 
-pub trait Index<I: Unsigned>: TupleList {
+/// A typenum-indexable tuple list.
+///
+/// The type parameter can only receive the output type of [`Count`].
+pub trait Index<I>: TupleList {
+    /// The indexed result type.
     type Output;
 
+    /// Index the tuple list and obtains its resulting reference.
     fn index(&self) -> &Self::Output;
 }
 
@@ -154,7 +155,6 @@ where
 
 impl<Head, Tail, U> Index<UInt<U>> for (Head, Tail)
 where
-    U: Unsigned,
     Tail: Index<U>,
     (Head, Tail): TupleList,
 {
@@ -170,7 +170,8 @@ pub trait Construct: Tuple
 where
     Self::TupleList: InElement,
 {
-    #[doc(hidden)]
+    /// The constructed tuple list of senders. The returned result type of
+    /// [`tuple`](crate::tuple::tuple) is the corresponding tuple type.
     type Sender: TupleList;
 
     #[allow(private_interfaces)]
