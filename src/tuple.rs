@@ -2,7 +2,8 @@ mod utils;
 
 use tuple_list::{Tuple, TupleList};
 
-use self::utils::{Concat, Construct, Count, InElement, Index};
+pub use self::utils::{Concat, Construct, InElement};
+use self::utils::{Count, Index};
 use crate::{array::Element, include::*};
 
 #[derive(Debug)]

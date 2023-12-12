@@ -4,14 +4,21 @@ use tuple_list::{Tuple, TupleList};
 
 use super::{Element, Inner, Sender};
 
+/// A trait for tuple lists that can be converted into its element storage
+/// place in [`Sender`].
 pub trait InElement: TupleList {
+    #[doc(hidden)]
     type Place: TupleList;
+    #[doc(hidden)]
     fn init() -> Self::Place;
     /// See [`Element::place`] for more information.
+    #[doc(hidden)]
     unsafe fn place(place: &Self::Place, data: Self);
 
+    #[doc(hidden)]
     type Take: TupleList;
     /// See [`Element::take`] for more information.
+    #[doc(hidden)]
     unsafe fn take(place: &Self::Place) -> Self::Take;
 }
 
@@ -49,9 +56,12 @@ where
     }
 }
 
+/// A tuple that is concatenable of other tuples.
 pub trait Concat<T: Tuple>: Tuple {
+    /// The concatenated tuple result.
     type Output: Tuple;
 
+    /// Concatenates 2 tuples into a longer tuple.
     fn concat(self, other: T) -> Self::Output;
 }
 
@@ -155,10 +165,12 @@ where
     }
 }
 
+/// A tuple type that is constructible into its tuple slot type.
 pub trait Construct: Tuple
 where
     Self::TupleList: InElement,
 {
+    #[doc(hidden)]
     type Sender: TupleList;
 
     #[allow(private_interfaces)]
