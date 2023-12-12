@@ -84,7 +84,6 @@ where
     Head: Concat<(Current,)>,
     <Head as Concat<(Current,)>>::Output: Concat<Tail>,
     Tail: Tuple,
-    Whole<Head, Current, Tail>: Tuple,
     <Whole<Head, Current, Tail> as Tuple>::TupleList: InElement;
 
 // SAFETY: We satisfy the contract by exposing no reference to any associated
@@ -96,7 +95,6 @@ where
     Current: Send,
     <Head as Concat<(Current,)>>::Output: Concat<Tail>,
     Tail: Tuple + Send,
-    Whole<Head, Current, Tail>: Tuple,
     <Whole<Head, Current, Tail> as Tuple>::TupleList: InElement,
 {
 }
@@ -109,7 +107,6 @@ where
     Head: Concat<(Current,)>,
     <Head as Concat<(Current,)>>::Output: Concat<Tail>,
     Tail: Tuple,
-    Whole<Head, Current, Tail>: Tuple,
     <Whole<Head, Current, Tail> as Tuple>::TupleList: InElement,
 {
     /// # Safety
@@ -119,7 +116,7 @@ where
         Sender(inner)
     }
 
-    /// Place the value into the slot, or obtain the resulting iterator if no
+    /// Place the value into the slot, or obtain the resulting tuple if no
     /// other senders exist any longer.
     pub fn send(self, value: Current) -> Result<(), Take<Head, Current, Tail>>
     where
@@ -144,7 +141,7 @@ where
         if fetch_sub == 1 {
             // SAFETY: We use `Acquire` fence here to observe other executions of placing
             // values. And since the reference count is now 0, we owns `inner`, so it can be
-            // handed to the iterator safely.
+            // dropped, returning the tuple safely.
             atomic::fence(Acquire);
             return Err(unsafe { Inner::drop_in_place(pointer) });
         }
@@ -157,7 +154,6 @@ where
     Head: Concat<(Current,)>,
     <Head as Concat<(Current,)>>::Output: Concat<Tail>,
     Tail: Tuple,
-    Whole<Head, Current, Tail>: Tuple,
     <Whole<Head, Current, Tail> as Tuple>::TupleList: InElement,
 {
     fn drop(&mut self) {
